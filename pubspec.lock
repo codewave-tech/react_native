@@ -81,8 +81,16 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.4.0"
-  cli_spin:
+  charcode:
     dependency: transitive
+    description:
+      name: charcode
+      sha256: fb0f1107cac15a5ea6ef0a6ef71a807b9e4267c713bb93e00e92d737cc8dbd8a
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.4.0"
+  cli_spin:
+    dependency: "direct main"
     description:
       name: cli_spin
       sha256: d942e605e508820b8bde1cfc26f19810abd6bd6bfa32a4f049c9ebaaccbddb50
@@ -364,6 +372,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.5.1"
+  process_run:
+    dependency: "direct main"
+    description:
+      name: process_run
+      sha256: "4539b7c0a34a4a4979e7345d9f5c6358961d9f53901baf2930807159d08ee59b"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.12.5+3"
   pub_semver:
     dependency: transitive
     description:
@@ -476,6 +492,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.1.5"
+  synchronized:
+    dependency: transitive
+    description:
+      name: synchronized
+      sha256: "69fe30f3a8b04a0be0c15ae6490fc859a78ef4c43ae2dd5e8a623d45bfcf9225"
+      url: "https://pub.dev"
+    source: hosted
+    version: "3.3.0+3"
   term_glyph:
     dependency: transitive
     description:
