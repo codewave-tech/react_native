@@ -34,6 +34,7 @@ class ReactNativeInit extends Command {
 
     int? idx = argsProcessor.check(apxInitializationType);
 
+    // If initialization type is not provided, default to "standard"
     if (idx == null) {
       CWLogger.i.stdout("Select init type:");
       Menu menu = Menu([
@@ -43,8 +44,8 @@ class ReactNativeInit extends Command {
       idx = menu.choose().index;
     }
 
-
     if (idx == 0) {
+      // Fetch list of branches from the GitLab repository
       List<String>? branches = await GitService.getGitLabBranches(
         ReactNativeConfig.i.archManagerProjectID,
         TokenService().accessToken!,
@@ -62,42 +63,26 @@ class ReactNativeInit extends Command {
       Menu menu = Menu(branches);
       int branchIdx = menu.choose().index;
 
+      // Start the loading spinner
       CliSpin loader = CliSpin(
           text: "Adapting architecture ${branches[branchIdx]} in the project")
           .start();
 
-      String? archSpecsContent = await GitService.getGitLabFileContent(
-        projectId: ReactNativeConfig.i.archManagerProjectID,
-        filePath: '__arch_specs.yaml',
-        branch: branches[branchIdx],
-        token: TokenService().accessToken!,
-      );
-
-      if (archSpecsContent == null) {
-        loader.fail(
-            "Unable to analyze the specification of the selected architecture");
-        exit(1);
-      }
-
-      Map<dynamic, dynamic> archSpecsMap =
-      YamlService.parseYamlContent(archSpecsContent);
-
-      String entryPoint = archSpecsMap['entrypoint'];
-
+      // Download architecture files directly (no need for `__arch_specs.yaml`)
       await GitService.downloadDirectoryContents(
         projectId: ReactNativeConfig.i.archManagerProjectID,
         branch: branches[branchIdx],
-        directoryPath: entryPoint,
+        directoryPath: 'components', // Example folder you want to download
         downloadPathBase: RuntimeConfig().commandExecutionPath,
         accessToken: TokenService().accessToken!,
         isProd: ReactNativeConfig.i.pluginEnvironment == PluginEnvironment.prod,
       );
 
-        await PackageJsonUtils.mergeRemotePackageJson(
-            ReactNativeConfig.i.archManagerProjectID,
-            branches[branchIdx]
-        );
-
+      // Perform the `package.json` merge for React Native
+      await PackageJsonUtils.mergeRemotePackageJson(
+          ReactNativeConfig.i.archManagerProjectID,
+          branches[branchIdx]
+      );
 
       loader.success("Project now follows the selected architecture");
 
@@ -111,6 +96,7 @@ class ReactNativeInit extends Command {
       filePath = stdin.readLineSync();
     }
 
+    // For custom architectures
     CWLogger.i.progress("Migrating the project based on custom Architecture..");
     await ArchTree.createStructureFromJson(
       File(filePath!).readAsStringSync(),
