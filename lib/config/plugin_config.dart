@@ -9,16 +9,16 @@ class ReactNativeConfig extends PluginConfig {
   factory ReactNativeConfig() => i;
 
   @override
-  String get archManagerProjectID => '';
+  String get archManagerProjectID => '68118890';
 
   @override
-  String get pilotRepoProjectID => '';
+  String get pilotRepoProjectID => '68118890';
 
   @override
   String get pilotRepoReferredBranch => '';
 
   @override
-  PluginEnvironment get pluginEnvironment => PluginEnvironment.dev;
+  PluginEnvironment get pluginEnvironment => PluginEnvironment.prod;
 
   @override
   Version get version => Version.parse("1.0.0");

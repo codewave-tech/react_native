@@ -1,6 +1,8 @@
 import 'package:cwa_plugin_core/cwa_plugin_core.dart';
 import 'package:pub_semver/pub_semver.dart';
 
+import 'commands/init/init.dart';
+
 class ReactNative extends Plugin {
   ReactNative(super.args);
 
@@ -14,7 +16,9 @@ class ReactNative extends Plugin {
   String get alias => 'rn';
 
   @override
-  Map<String, Command> get commands => {};
+  Map<String, Command> get commands => {
+    "init": ReactNativeInit(args),
+  };
 
   @override
   void pluginEntry() {
