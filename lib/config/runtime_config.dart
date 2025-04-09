@@ -18,6 +18,7 @@ class RuntimeConfig extends RTC<PubSpec> {
   static final String l10nAppStringPath = 'lib/core/l10n/app_strings.dart';
   static final String libraryPath = 'lib/libraries';
   static final String featureLocation = 'lib/features';
+  static final String utilsLocation = 'utils';
 
   @override
   Future<void> initialize() async {
