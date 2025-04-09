@@ -18,13 +18,8 @@ class ReactNativeInit extends Command {
   Future<void> run() async {
     ArgsProcessor argsProcessor = ArgsProcessor(args);
 
-    // Skip the selection of "init type" and directly set it to "standard"
-    int idx = 0; // Standard initialization type by default
+    String branch = 'main';
 
-    // Skip the selection of architecture branches and default to 'main' branch
-    String branch = 'main'; // Set default to main branch
-
-    // Start the process of fetching the branches (but default to 'main' without user input)
     List<String>? branches = await GitService.getGitLabBranches(
       ReactNativeConfig.i.archManagerProjectID,
       TokenService().accessToken!,
