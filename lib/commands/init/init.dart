@@ -18,93 +18,49 @@ class ReactNativeInit extends Command {
   Future<void> run() async {
     ArgsProcessor argsProcessor = ArgsProcessor(args);
 
-    argsProcessor
-      ..process(
-        index: 1,
-        processedName: apxInitializationType,
-        valid: [
-          'standard',
-          'custom',
-        ],
-      )
-      ..process(
-        index: 2,
-        processedName: apxConfigFilePath,
+    // Skip the selection of "init type" and directly set it to "standard"
+    int idx = 0; // Standard initialization type by default
+
+    // Skip the selection of architecture branches and default to 'main' branch
+    String branch = 'main'; // Set default to main branch
+
+    // Start the process of fetching the branches (but default to 'main' without user input)
+    List<String>? branches = await GitService.getGitLabBranches(
+      ReactNativeConfig.i.archManagerProjectID,
+      TokenService().accessToken!,
+    );
+
+    if (branches == null || !branches.contains(branch)) {
+      CWLogger.namedLog(
+        "Error occurred while looking for available architectures or 'main' branch is missing",
+        loggerColor: CWLoggerColor.red,
       );
-
-    int? idx = argsProcessor.check(apxInitializationType);
-
-    // If initialization type is not provided, default to "standard"
-    if (idx == null) {
-      CWLogger.i.stdout("Select init type:");
-      Menu menu = Menu([
-        'Use standard predefined architectures',
-        'Use custom configuration file',
-      ]);
-      idx = menu.choose().index;
+      exit(1);
     }
 
-    if (idx == 0) {
-      // Fetch list of branches from the GitLab repository
-      List<String>? branches = await GitService.getGitLabBranches(
+    // Start the loading spinner
+    CliSpin loader = CliSpin(
+        text: "Adapting architecture $branch in the project")
+        .start();
+
+    // Download architecture files directly from the 'main' branch
+    await GitService.downloadDirectoryContents(
+      projectId: ReactNativeConfig.i.archManagerProjectID,
+      branch: branch,
+      directoryPath: 'components', // Example folder to download, you can adjust it
+      downloadPathBase: RuntimeConfig().commandExecutionPath,
+      accessToken: TokenService().accessToken!,
+      isProd: ReactNativeConfig.i.pluginEnvironment == PluginEnvironment.prod,
+    );
+
+    // Perform the `package.json` merge for React Native
+    await PackageJsonUtils.mergeRemotePackageJson(
         ReactNativeConfig.i.archManagerProjectID,
-        TokenService().accessToken!,
-      );
-
-      if (branches == null) {
-        CWLogger.namedLog(
-          "Error occurred while looking for available architectures",
-          loggerColor: CWLoggerColor.red,
-        );
-        exit(1);
-      }
-
-      CWLogger.i.stdout("Select architecture:");
-      Menu menu = Menu(branches);
-      int branchIdx = menu.choose().index;
-
-      // Start the loading spinner
-      CliSpin loader = CliSpin(
-          text: "Adapting architecture ${branches[branchIdx]} in the project")
-          .start();
-
-      // Download architecture files directly (no need for `__arch_specs.yaml`)
-      await GitService.downloadDirectoryContents(
-        projectId: ReactNativeConfig.i.archManagerProjectID,
-        branch: branches[branchIdx],
-        directoryPath: 'components', // Example folder you want to download
-        downloadPathBase: RuntimeConfig().commandExecutionPath,
-        accessToken: TokenService().accessToken!,
-        isProd: ReactNativeConfig.i.pluginEnvironment == PluginEnvironment.prod,
-      );
-
-      // Perform the `package.json` merge for React Native
-      await PackageJsonUtils.mergeRemotePackageJson(
-          ReactNativeConfig.i.archManagerProjectID,
-          branches[branchIdx]
-      );
-
-      loader.success("Project now follows the selected architecture");
-
-      return;
-    }
-
-    String? filePath = argsProcessor.check(ReactNativeInit.apxConfigFilePath);
-
-    if (filePath == null) {
-      CWLogger.inLinePrint("Enter the path to config file");
-      filePath = stdin.readLineSync();
-    }
-
-    // For custom architectures
-    CWLogger.i.progress("Migrating the project based on custom Architecture..");
-    await ArchTree.createStructureFromJson(
-      File(filePath!).readAsStringSync(),
-      '.',
+        branch
     );
 
-    CWLogger.namedLog(
-      "Completed Successfully!!",
-    );
+    loader.success("Project now follows the selected architecture");
+
+    return;
   }
 }
