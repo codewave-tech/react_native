@@ -28,7 +28,7 @@ class SpecificationUpdater {
       await _updateAppJsonIos(specificationData['appJsonIos']);
       await _updateAppJsonAndroid(specificationData['appJsonAndroid']);
       await _updatePlugins(specificationData['plugins']);
-      await _updateAppWrapper(specificationData['jsxModifications']);
+      await _updateAppWrapper(specificationData['jsxModifications']??{});
       await PackageJsonUtils.runYarnInstall();
     } else {
       CWLogger.namedLog('Failed to fetch specification_config.json');
