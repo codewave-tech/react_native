@@ -1,10 +1,12 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:cli_spin/cli_spin.dart';
 import 'package:cwa_plugin_core/cwa_plugin_core.dart';
 import 'package:react_native/config/plugin_config.dart';
+
 import '../../config/runtime_config.dart';
-import '../../model/specification.dart'; // Import the SpecificationUpdater
+import '../../model/specification.dart';
 
 class ReactNativeUtils extends Command {
   ReactNativeUtils(super.args);
@@ -17,7 +19,7 @@ class ReactNativeUtils extends Command {
     CWLogger.i.progress("Looking for available Utilities");
 
     List<String>? dirs = await GitService.getGitLabBranches(
-      ReactNativeConfig.i.pilotRepoProjectID,
+      ReactNativeConfig.i.archManagerProjectID,
       TokenService().accessToken!,
     );
 
@@ -28,11 +30,10 @@ class ReactNativeUtils extends Command {
       );
       exit(1);
     }
-
-    // Filter out utils branches (utils/permissionUtils, utils/validations, etc.)
+    CWLogger.i.stdout(dirs.toSet().toString());
     List<String> utilsBranches = dirs
         .where((branch) => branch.startsWith('utils/'))
-        .map((branch) => branch.replaceFirst('utils/', '')) // Remove 'utils/' prefix
+        .map((branch) => branch.replaceFirst('utils/', ''))
         .toList();
 
     if (utilsBranches.isEmpty) {
@@ -44,54 +45,69 @@ class ReactNativeUtils extends Command {
     }
 
     CWLogger.i.stdout("Please select the Utility you want to use :");
+    CWLogger.i.stdout(utilsBranches.toString());
     Menu featureMenu = Menu(utilsBranches);
     int idx = featureMenu.choose().index;
 
-    // Get the full branch name (e.g., 'utils/permissionUtils')
     String selectedUtility = 'utils/${utilsBranches[idx]}';
 
-    // Add the selected utility to the project and update configurations
     await _handleUtilityAndSpecification(selectedUtility);
   }
 
-  // Combined method to download utility files and update project configurations
   Future<void> _handleUtilityAndSpecification(String utilityName) async {
-    CliSpin featureLoader = CliSpin(text: "Adding $utilityName to the project").start();
+    CliSpin featureLoader =
+        CliSpin(text: "Adding $utilityName to the project").start();
 
     try {
-      // Download the utility files from the GitLab repository
-
-      String filePath = '$utilityName/utils/PermissionUtil.ts'; // The path to the utility file
-      String? fileContent = await GitService.getGitLabFileContent(
+      String filePath = 'specification_config.json';
+      String? specsFileContent = await GitService.getGitLabFileContent(
         projectId: ReactNativeConfig.i.pilotRepoProjectID,
         filePath: filePath,
-        branch: ReactNativeConfig.i.pilotRepoReferredBranch,
+        branch: utilityName,
         token: TokenService().accessToken!,
       );
 
-      if (fileContent != null) {
-        // Define the path where we want to store the file locally
-        String localPath = '${RuntimeConfig()
-            .commandExecutionPath}/utils/PermissionUtil.ts';
-        File localFile = File(localPath);
+      if (specsFileContent != null) {
+        Map<String, dynamic> specificationData = json.decode(specsFileContent);
 
-        if (localFile.existsSync()) {
-          CWLogger.i.trace(
-              'PermissionUtil.ts already exists, skipping download.');
-          return;
+        List<dynamic> utilityFilePaths = specificationData['filePath'];
+
+        for (String utilityFilePath in utilityFilePaths) {
+          String? fileContent = await GitService.getGitLabFileContent(
+            projectId: ReactNativeConfig.i.pilotRepoProjectID,
+            filePath: utilityFilePath,
+            branch: utilityName,
+            token: TokenService().accessToken!,
+          );
+
+          if (fileContent != null) {
+            String localFilePath =
+                '${RuntimeConfig().commandExecutionPath}/$utilityFilePath';
+            File localFile = File(localFilePath);
+
+            if (localFile.existsSync()) {
+              CWLogger.i
+                  .trace('$utilityFilePath already exists, skipping download.');
+            } else {
+              await localFile.create(recursive: true);
+              await localFile.writeAsString(fileContent);
+              CWLogger.i.trace('Downloaded $utilityFilePath successfully.');
+            }
+          } else {
+            CWLogger.i.trace('Failed to fetch $utilityFilePath.');
+          }
         }
 
-        await localFile.create(recursive: true);
-        await localFile.writeAsString(fileContent);
+        await SpecificationUpdater.updateSpecifications(utilityName);
+
+        featureLoader.success();
+      } else {
+        CWLogger.i.trace('Failed to fetch specification_config.json');
       }
-      await SpecificationUpdater.updateSpecifications(utilityName);
-      featureLoader.success();
-
-
-      CWLogger.i.trace("Utility $utilityName has been successfully added and updated.");
     } catch (e) {
       featureLoader.fail();
-      CWLogger.i.trace('Error downloading utility $utilityName or updating specifications: $e');
+      CWLogger.i.trace(
+          'Error downloading utility $utilityName or updating specifications: $e');
     }
   }
 }
