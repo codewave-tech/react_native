@@ -79,6 +79,13 @@
             </list>
           </value>
         </entry>
+        <entry key="cli_config">
+          <value>
+            <list>
+              <option value="$PROJECT_DIR$/../.pub-cache/hosted/pub.dev/cli_config-0.2.0/lib" />
+            </list>
+          </value>
+        </entry>
         <entry key="cli_spin">
           <value>
             <list>
@@ -110,7 +117,7 @@
         <entry key="coverage">
           <value>
             <list>
-              <option value="$PROJECT_DIR$/../.pub-cache/hosted/pub.dev/coverage-1.11.1/lib" />
+              <option value="$PROJECT_DIR$/../.pub-cache/hosted/pub.dev/coverage-1.12.0/lib" />
             </list>
           </value>
         </entry>
@@ -544,11 +551,12 @@
       <root url="file://$PROJECT_DIR$/../.pub-cache/hosted/pub.dev/boolean_selector-2.1.2/lib" />
       <root url="file://$PROJECT_DIR$/../.pub-cache/hosted/pub.dev/characters-1.4.0/lib" />
       <root url="file://$PROJECT_DIR$/../.pub-cache/hosted/pub.dev/charcode-1.4.0/lib" />
+      <root url="file://$PROJECT_DIR$/../.pub-cache/hosted/pub.dev/cli_config-0.2.0/lib" />
       <root url="file://$PROJECT_DIR$/../.pub-cache/hosted/pub.dev/cli_spin-1.0.1/lib" />
       <root url="file://$PROJECT_DIR$/../.pub-cache/hosted/pub.dev/cli_util-0.4.2/lib" />
       <root url="file://$PROJECT_DIR$/../.pub-cache/hosted/pub.dev/collection-1.19.1/lib" />
       <root url="file://$PROJECT_DIR$/../.pub-cache/hosted/pub.dev/convert-3.1.2/lib" />
-      <root url="file://$PROJECT_DIR$/../.pub-cache/hosted/pub.dev/coverage-1.11.1/lib" />
+      <root url="file://$PROJECT_DIR$/../.pub-cache/hosted/pub.dev/coverage-1.12.0/lib" />
       <root url="file://$PROJECT_DIR$/../.pub-cache/hosted/pub.dev/crypto-3.0.6/lib" />
       <root url="file://$PROJECT_DIR$/../.pub-cache/hosted/pub.dev/east_asian_width-1.0.1/lib" />
       <root url="file://$PROJECT_DIR$/../.pub-cache/hosted/pub.dev/emoji_regex-0.0.5/lib" />
