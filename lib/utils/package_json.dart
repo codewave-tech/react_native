@@ -60,7 +60,7 @@ class PackageJsonUtils {
   static Future<void> runYarnInstall() async {
     try {
       CWLogger.i.stdout("Running yarn install...");
-      await Shell().run('npm install');
+      await Shell().run('yarn install');
       CWLogger.i.stdout("yarn install completed successfully.");
     } catch (e) {
       CWLogger.i.stderr("Error running yarn install: $e");
