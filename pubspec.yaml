@@ -1,5 +1,5 @@
 name: react_native
-version: 1.2.0
+version: 1.5.0
 description: A sample command-line application.
 environment: 
   sdk: ^3.2.0
@@ -7,7 +7,7 @@ dependencies:
   cwa_plugin_core: 
     git: 
       url: git@gitlab.com-codewave:codewave-technologies/cwa_plugin_core.git
-      ref: main
+      ref: feature/update-api-and-model
   cw_core: 
     git: 
       url: git@gitlab.com-codewave:codewave-technologies/codewave-flutter-core.git
