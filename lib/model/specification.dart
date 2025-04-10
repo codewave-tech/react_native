@@ -287,20 +287,7 @@ class SpecificationUpdater {
 
     String appWrapperContent = await appWrapperFile.readAsString();
 
-    if (jsxModifications.containsKey('imports')) {
-      List<dynamic> imports = jsxModifications['imports'];
 
-      for (var importConfig in imports) {
-        String importStatement = importConfig['importStatement'];
-        if (!appWrapperContent.contains(importStatement)) {
-          appWrapperContent = importStatement + '\n' + appWrapperContent;
-          CWLogger.namedLog(
-              'Added import: $importStatement to AppWrapper.tsx.');
-        } else {
-          CWLogger.namedLog('Import already exists: $importStatement.');
-        }
-      }
-    }
 
     if (jsxModifications.containsKey('jsxChanges')) {
       List<dynamic> jsxChanges = jsxModifications['jsxChanges'];
@@ -319,6 +306,20 @@ class SpecificationUpdater {
               "</$wrapComponent>", "\n    </$wrapComponent>\n</$wrapper>");
           CWLogger.namedLog(
               'Wrapped $wrapComponent with $wrapper in AppWrapper.tsx.');
+        }
+      }
+    }
+    if (jsxModifications.containsKey('imports')) {
+      List<dynamic> imports = jsxModifications['imports'];
+
+      for (var importConfig in imports) {
+        String importStatement = importConfig['importStatement'];
+        if (!appWrapperContent.contains(importStatement)) {
+          appWrapperContent = importStatement + '\n' + appWrapperContent;
+          CWLogger.namedLog(
+              'Added import: $importStatement to AppWrapper.tsx.');
+        } else {
+          CWLogger.namedLog('Import already exists: $importStatement.');
         }
       }
     }
