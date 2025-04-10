@@ -12,7 +12,7 @@ class ReactNative extends Plugin {
   String get pluginName => 'react_native';
 
   @override
-  Version get version => Version.parse("1.1.1");
+  Version get version => Version.parse("1.2.0");
 
   @override
   String get alias => 'rn';
