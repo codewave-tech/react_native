@@ -30,7 +30,6 @@ class ReactNativeUtils extends Command {
       );
       exit(1);
     }
-    CWLogger.i.stdout(dirs.toSet().toString());
     List<String> utilsBranches = dirs
         .where((branch) => branch.startsWith('utils/'))
         .map((branch) => branch.replaceFirst('utils/', ''))
@@ -45,7 +44,6 @@ class ReactNativeUtils extends Command {
     }
 
     CWLogger.i.stdout("Please select the Utility you want to use :");
-    CWLogger.i.stdout(utilsBranches.toString());
     Menu featureMenu = Menu(utilsBranches);
     int idx = featureMenu.choose().index;
 
