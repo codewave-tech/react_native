@@ -29,6 +29,7 @@ class SpecificationUpdater {
       await _updateAppJsonAndroid(specificationData['appJsonAndroid']);
       await _updatePlugins(specificationData['plugins']);
       await _updateAppWrapper(specificationData['jsxModifications']??{});
+      await _updateMetroConfig(specificationData['metroConfigChanges']??{});
       await PackageJsonUtils.runYarnInstall();
     } else {
       CWLogger.namedLog('Failed to fetch specification_config.json');
@@ -258,21 +259,38 @@ class SpecificationUpdater {
       appJson['expo']['plugins'] = [];
     }
 
+    // Iterate through the plugins to be added
     for (var plugin in plugins) {
-      bool pluginExists = appJson['expo']['plugins']
-          .any((existingPlugin) => existingPlugin[0] == plugin[0]);
+      if (plugin is String) {
+        // Handle string plugins like "expo-router"
+        bool pluginExists = appJson['expo']['plugins'].contains(plugin);
 
-      if (!pluginExists) {
-        appJson['expo']['plugins'].add(plugin);
-        CWLogger.namedLog('Added $plugin to app.json plugins.');
-      } else {
-        CWLogger.namedLog('$plugin already exists in app.json plugins.');
+        if (!pluginExists) {
+          appJson['expo']['plugins'].add(plugin);
+          CWLogger.namedLog('Added string plugin $plugin to app.json plugins.');
+        } else {
+          CWLogger.namedLog('String plugin $plugin already exists in app.json plugins.');
+        }
+      } else if (plugin is List) {
+        // Handle array-based plugins like ["expo-splash-screen", { ... }]
+        bool pluginExists = appJson['expo']['plugins']
+            .any((existingPlugin) =>
+        existingPlugin is List && existingPlugin[0] == plugin[0]);
+
+        if (!pluginExists) {
+          appJson['expo']['plugins'].add(plugin);
+          CWLogger.namedLog('Added array plugin ${plugin[0]} to app.json plugins.');
+        } else {
+          CWLogger.namedLog('Array plugin ${plugin[0]} already exists in app.json plugins.');
+        }
       }
     }
 
+    // Write the updated content back to app.json
     await appJsonFile.writeAsString(json.encode(appJson), mode: FileMode.write);
     CWLogger.namedLog('Updated app.json with plugins configuration.');
   }
+
 
   static Future<void> _updateAppWrapper(
       Map<String, dynamic> jsxModifications) async {
@@ -287,8 +305,7 @@ class SpecificationUpdater {
 
     String appWrapperContent = await appWrapperFile.readAsString();
 
-
-
+    // Handle JSX changes (wrapping components)
     if (jsxModifications.containsKey('jsxChanges')) {
       List<dynamic> jsxChanges = jsxModifications['jsxChanges'];
 
@@ -296,19 +313,34 @@ class SpecificationUpdater {
         String component = changeConfig['component'];
         String wrapComponent = changeConfig['wrapComponent'];
         String wrapper = changeConfig['wrapper'];
+        Map<String, dynamic>? wrapperProps = changeConfig['wrapperProps'];
 
         if (component == "AppWrapper" &&
             wrapComponent == "KeyboardProvider" &&
             !appWrapperContent.contains(wrapper)) {
+
+          // Wrap the component with the wrapper
           appWrapperContent = appWrapperContent.replaceFirst(
               "<$wrapComponent>", "<$wrapper>\n    <$wrapComponent>\n");
           appWrapperContent = appWrapperContent.replaceFirst(
               "</$wrapComponent>", "\n    </$wrapComponent>\n</$wrapper>");
-          CWLogger.namedLog(
-              'Wrapped $wrapComponent with $wrapper in AppWrapper.tsx.');
+
+          // Optionally handle `wrapperProps`
+          if (wrapperProps != null) {
+            // Convert the `wrapperProps` map to a string (if needed)
+            String wrapperPropsString = _convertWrapperPropsToString(wrapperProps);
+            appWrapperContent = appWrapperContent.replaceFirst(
+                "<$wrapper>", "<$wrapper $wrapperPropsString>");
+            CWLogger.namedLog(
+                'Added wrapperProps to $wrapper in AppWrapper.tsx.');
+          }
+
+          CWLogger.namedLog('Wrapped $wrapComponent with $wrapper in AppWrapper.tsx.');
         }
       }
     }
+
+    // Handle Imports
     if (jsxModifications.containsKey('imports')) {
       List<dynamic> imports = jsxModifications['imports'];
 
@@ -327,4 +359,68 @@ class SpecificationUpdater {
     await appWrapperFile.writeAsString(appWrapperContent, mode: FileMode.write);
     CWLogger.namedLog('Updated AppWrapper.tsx with dynamic changes.');
   }
+
+// Helper method to convert wrapperProps map to string (if necessary)
+  static String _convertWrapperPropsToString(Map<String, dynamic> wrapperProps) {
+    List<String> props = [];
+    wrapperProps.forEach((key, value) {
+      props.add('$key="$value"');
+    });
+    return props.join(' ');
+  }
+
+  static Future<void> _updateMetroConfig(Map<String, dynamic> configChanges) async {
+    String metroConfigPath =
+        '${RuntimeConfig().commandExecutionPath}/metro.config.js';
+    File metroConfigFile = File(metroConfigPath);
+
+    if (!metroConfigFile.existsSync()) {
+      CWLogger.namedLog('metro.config.js not found!');
+      return;
+    }
+
+    String metroConfigContent = await metroConfigFile.readAsString();
+
+    // Handle 'assetExts' changes: Add 'lottie' and remove 'svg'
+    if (configChanges.containsKey('assetExts')) {
+      var assetExtsChanges = configChanges['assetExts'];
+      if (assetExtsChanges != null && assetExtsChanges is List) {
+        assetExtsChanges.forEach((extChange) {
+          // Remove "svg" from assetExts and add "lottie"
+          if (!metroConfigContent.contains('assetExts: [...resolver.assetExts.filter((ext) => ext !== "svg"), "$extChange"]')) {
+            metroConfigContent = metroConfigContent.replaceFirst(
+                "assetExts: resolver.assetExts.filter((ext) => ext !== \"svg\")",
+                "assetExts: [...resolver.assetExts.filter((ext) => ext !== \"svg\"), \"$extChange\"]");
+            CWLogger.namedLog('Added asset extension: $extChange to metro.config.js.');
+          } else {
+            CWLogger.namedLog('Asset extension $extChange already exists.');
+          }
+        });
+      }
+    }
+
+    // Handle 'sourceExts' changes: Add 'lottie' and 'svg'
+    if (configChanges.containsKey('sourceExts')) {
+      var sourceExtsChanges = configChanges['sourceExts'];
+      if (sourceExtsChanges != null && sourceExtsChanges is List) {
+        sourceExtsChanges.forEach((extChange) {
+          // Add "lottie" to sourceExts and ensure "svg" is still included
+          if (!metroConfigContent.contains('sourceExts: [...resolver.sourceExts, "svg", "$extChange"]')) {
+            metroConfigContent = metroConfigContent.replaceFirst(
+                "sourceExts: [...resolver.sourceExts]",
+                "sourceExts: [...resolver.sourceExts, \"svg\", \"$extChange\"]");
+            CWLogger.namedLog('Added source extension: $extChange to metro.config.js.');
+          } else {
+            CWLogger.namedLog('Source extension $extChange already exists.');
+          }
+        });
+      }
+    }
+
+    // Write the updated content back to metro.config.js
+    await metroConfigFile.writeAsString(metroConfigContent, mode: FileMode.write);
+    CWLogger.namedLog('Updated metro.config.js with new extensions.');
+  }
+
+
 }

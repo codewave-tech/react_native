@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:cwa_plugin_core/cwa_plugin_core.dart';
+import 'package:react_native/commands/add/add_component.dart';
 import 'package:react_native/commands/add/add_features.dart';
 import 'package:react_native/commands/add/add_utils.dart';
 
@@ -11,7 +12,7 @@ class ReactNativeAdd extends Command {
 
   @override
   String get description =>
-      "Add features, libraries, or utilities from our main repo.";
+      "Add features, service, component, or utilities from our main repo.";
 
   @override
   Future<void> run() async {
@@ -20,6 +21,7 @@ class ReactNativeAdd extends Command {
       'Add a Utility',
       'Add a Service',
       'Add a Feature',
+      'Add a Component',
     ]);
 
     int idx = menu.choose().index;
@@ -31,6 +33,8 @@ class ReactNativeAdd extends Command {
         await ReactNativeService(args).run();
         case 2:
         await ReactNativeFeature(args).run();
+        case 3:
+        await ReactNativeComponent(args).run();
       default:
         exit(2);
     }

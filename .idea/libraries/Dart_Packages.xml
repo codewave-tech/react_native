@@ -138,7 +138,7 @@
         <entry key="cwa_plugin_core">
           <value>
             <list>
-              <option value="$PROJECT_DIR$/../.pub-cache/git/cwa_plugin_core-de89aeca033238d43f2ae9bcbec3e10074ecdad1//lib" />
+              <option value="$PROJECT_DIR$/../.pub-cache/git/cwa_plugin_core-fbb655ed7b5b19158c77e1f00e0d39a11f066bac//lib" />
             </list>
           </value>
         </entry>
@@ -538,7 +538,7 @@
     </properties>
     <CLASSES>
       <root url="file://$PROJECT_DIR$/../.pub-cache/git/codewave-flutter-core-9a694b332b7f918c237b98bb5033f2a9a58dfe48//lib" />
-      <root url="file://$PROJECT_DIR$/../.pub-cache/git/cwa_plugin_core-de89aeca033238d43f2ae9bcbec3e10074ecdad1//lib" />
+      <root url="file://$PROJECT_DIR$/../.pub-cache/git/cwa_plugin_core-fbb655ed7b5b19158c77e1f00e0d39a11f066bac//lib" />
       <root url="file://$PROJECT_DIR$/../.pub-cache/git/logger-7e31bb22f044c40ea56fa319215eaf16a9e92e25//lib" />
       <root url="file://$PROJECT_DIR$/../.pub-cache/hosted/pub.dev/_discoveryapis_commons-1.0.7/lib" />
       <root url="file://$PROJECT_DIR$/../.pub-cache/hosted/pub.dev/_fe_analyzer_shared-80.0.0/lib" />
