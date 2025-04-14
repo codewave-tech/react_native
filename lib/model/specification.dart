@@ -30,6 +30,8 @@ class SpecificationUpdater {
       await _updatePlugins(specificationData['plugins']);
       await _updateAppWrapper(specificationData['jsxModifications']??{});
       await _updateMetroConfig(specificationData['metroConfigChanges']??{});
+      await _updateAppLayout(specificationData['appLayoutChanges']??{});
+      await _updateStoreFile(specificationData['storeChanges']??{});
       await PackageJsonUtils.runYarnInstall();
     } else {
       CWLogger.namedLog('Failed to fetch specification_config.json');
@@ -38,8 +40,7 @@ class SpecificationUpdater {
 
   static Future<void> _updatePackageJson(Map<String, dynamic> dependencies,
       Map<String, dynamic> specificationData) async {
-    String packageJsonPath =
-        '${RuntimeConfig().commandExecutionPath}/package.json';
+    String packageJsonPath = '${RuntimeConfig().commandExecutionPath}/package.json';
     File packageJsonFile = File(packageJsonPath);
     if (!packageJsonFile.existsSync()) {
       CWLogger.namedLog('package.json not found!');
@@ -47,6 +48,8 @@ class SpecificationUpdater {
     }
     String packageJsonContent = await packageJsonFile.readAsString();
     Map<String, dynamic> packageJson = json.decode(packageJsonContent);
+
+    // Handle normal dependencies
     dependencies.forEach((dependency, version) {
       if (!packageJson['dependencies'].containsKey(dependency)) {
         packageJson['dependencies'][dependency] = version;
@@ -56,6 +59,26 @@ class SpecificationUpdater {
       }
     });
 
+    // Handle devDependencies
+    if (specificationData.containsKey('packageJsonDevDependencies')) {
+      Map<String, dynamic> devDependencies = specificationData['packageJsonDevDependencies'];
+
+      // Ensure devDependencies section exists
+      if (!packageJson.containsKey('devDependencies')) {
+        packageJson['devDependencies'] = {};
+      }
+
+      devDependencies.forEach((dependency, version) {
+        if (!packageJson['devDependencies'].containsKey(dependency)) {
+          packageJson['devDependencies'][dependency] = version;
+          CWLogger.namedLog('Added $dependency to devDependencies in package.json');
+        } else {
+          CWLogger.namedLog('$dependency already exists in devDependencies.');
+        }
+      });
+    }
+
+    // Handle expo.doctor.reactNativeDirectoryCheck (same as existing code)
     if (specificationData.containsKey('expo')) {
       Map<String, dynamic> expoConfig = specificationData['expo'];
 
@@ -65,7 +88,7 @@ class SpecificationUpdater {
         if (doctorConfig.containsKey('reactNativeDirectoryCheck') &&
             doctorConfig['reactNativeDirectoryCheck'] is Map<String, dynamic>) {
           Map<String, dynamic> reactNativeDirectoryCheckConfig =
-              doctorConfig['reactNativeDirectoryCheck'];
+          doctorConfig['reactNativeDirectoryCheck'];
 
           if (!packageJson.containsKey('expo')) {
             packageJson['expo'] = {};
@@ -82,9 +105,9 @@ class SpecificationUpdater {
 
           if (reactNativeDirectoryCheckConfig.containsKey('exclude')) {
             List<dynamic> excludeList =
-                reactNativeDirectoryCheckConfig['exclude'];
+            reactNativeDirectoryCheckConfig['exclude'];
             List<dynamic> existingExcludeList = packageJson['expo']['doctor']
-                    ['reactNativeDirectoryCheck']['exclude'] ??
+            ['reactNativeDirectoryCheck']['exclude'] ??
                 [];
 
             for (var excludeItem in excludeList) {
@@ -99,14 +122,14 @@ class SpecificationUpdater {
             }
 
             packageJson['expo']['doctor']['reactNativeDirectoryCheck']
-                ['exclude'] = existingExcludeList;
+            ['exclude'] = existingExcludeList;
           }
 
           if (reactNativeDirectoryCheckConfig
               .containsKey('listUnknownPackages')) {
             packageJson['expo']['doctor']['reactNativeDirectoryCheck']
-                    ['listUnknownPackages'] =
-                reactNativeDirectoryCheckConfig['listUnknownPackages'];
+            ['listUnknownPackages'] =
+            reactNativeDirectoryCheckConfig['listUnknownPackages'];
             CWLogger.namedLog(
                 'Updated listUnknownPackages in reactNativeDirectoryCheck in package.json (expo.doctor).');
           }
@@ -422,5 +445,127 @@ class SpecificationUpdater {
     CWLogger.namedLog('Updated metro.config.js with new extensions.');
   }
 
+  static Future<void> _updateAppLayout(Map<String, dynamic> appLayoutChanges) async {
+    String appLayoutPath = '${RuntimeConfig().commandExecutionPath}/app/_layout.tsx';
+    File appLayoutFile = File(appLayoutPath);
+
+    if (!appLayoutFile.existsSync()) {
+      CWLogger.namedLog('_layout.tsx not found!');
+      return;
+    }
+
+    String appLayoutContent = await appLayoutFile.readAsString();
+
+    // Handle imports for Redux and any other dynamic imports
+    if (appLayoutChanges.containsKey('imports')) {
+      List<dynamic> imports = appLayoutChanges['imports'];
+
+      for (var importConfig in imports) {
+        String importStatement = importConfig['importStatement'];
+        // Ensure each import is added only once
+        if (!appLayoutContent.contains(importStatement)) {
+          appLayoutContent = importStatement + '\n' + appLayoutContent;
+          CWLogger.namedLog('Added import: $importStatement to _layout.tsx.');
+        } else {
+          CWLogger.namedLog('Import already exists: $importStatement.');
+        }
+      }
+    }
+
+    // Handle adding the Provider and PersistGate around the return statement dynamically
+    if (appLayoutChanges.containsKey('providerPersistGateWrapper') &&
+        appLayoutChanges.containsKey('providerPersistGateClose')) {
+      String providerPersistGateWrapper = appLayoutChanges['providerPersistGateWrapper'];
+      String providerPersistGateClose = appLayoutChanges['providerPersistGateClose'];
+
+      // Find the return statement pattern
+      RegExp returnRegExp = RegExp(r'return\s*\(');
+      Match? returnMatch = returnRegExp.firstMatch(appLayoutContent);
+
+      if (returnMatch != null) {
+        int returnStartIndex = returnMatch.end; // Position after "return ("
+
+        // Now find the matching closing parenthesis
+        int openParens = 1; // We start with one open parenthesis from "return ("
+        int closeIndex = returnStartIndex;
+
+        // Find the matching closing parenthesis by counting opening and closing parentheses
+        for (int i = returnStartIndex; i < appLayoutContent.length; i++) {
+          if (appLayoutContent[i] == '(') {
+            openParens++;
+          } else if (appLayoutContent[i] == ')') {
+            openParens--;
+            if (openParens == 0) {
+              // We found the matching closing parenthesis
+              closeIndex = i;
+              break;
+            }
+          }
+        }
+
+        // Extract the parts of the content
+        String beforeReturn = appLayoutContent.substring(0, returnStartIndex);
+        String returnContent = appLayoutContent.substring(returnStartIndex, closeIndex);
+        String afterReturn = appLayoutContent.substring(closeIndex);
+
+        // Create the updated content with wrapper components
+        appLayoutContent = beforeReturn + providerPersistGateWrapper + returnContent + providerPersistGateClose + afterReturn;
+
+        CWLogger.namedLog('Wrapped return statement with Provider and PersistGate in _layout.tsx.');
+      } else {
+        CWLogger.namedLog('Could not find return statement pattern in _layout.tsx.');
+      }
+    }
+
+    // Write the updated content back to _layout.tsx
+    await appLayoutFile.writeAsString(appLayoutContent, mode: FileMode.write);
+    CWLogger.namedLog('Updated _layout.tsx with imports and wrapping of return statement.');
+  }
+  static Future<void> _updateStoreFile(Map<String, dynamic> storeChanges) async {
+    String storeFilePath = '${RuntimeConfig().commandExecutionPath}/${storeChanges['filePath']}';
+    File storeFile = File(storeFilePath);
+
+    if (!storeFile.existsSync()) {
+      CWLogger.namedLog('store.ts not found!');
+      return;
+    }
+
+    String storeContent = await storeFile.readAsString();
+    Map<String, dynamic> storeJson = json.decode(storeContent);
+
+    // Ensure the whitelist array exists
+    if (!storeJson.containsKey('whitelist')) {
+      storeJson['whitelist'] = [];
+      CWLogger.namedLog('Created missing whitelist array in store.ts.');
+    }
+
+    // Add the RefreshControlSlice to the whitelist if not already present
+    List<dynamic> whitelist = storeJson['whitelist'];
+    if (!whitelist.contains(storeChanges['whitelistArrayChanges'][0])) {
+      whitelist.add(storeChanges['whitelistArrayChanges'][0]);
+      CWLogger.namedLog('Added RefreshControlSlice to whitelist in store.ts.');
+    } else {
+      CWLogger.namedLog('RefreshControlSlice already exists in whitelist in store.ts.');
+    }
+
+    // Ensure the reducers object exists
+    if (!storeJson.containsKey('reducers')) {
+      storeJson['reducers'] = {};
+      CWLogger.namedLog('Created missing reducers object in store.ts.');
+    }
+
+    // Add the RefreshControlSlice to the reducers object if not already present
+    Map<String, dynamic> reducers = storeJson['reducers'];
+    if (!reducers.containsKey(storeChanges['reducerChanges'].keys.first)) {
+      reducers[storeChanges['reducerChanges'].keys.first] = storeChanges['reducerChanges'].values.first;
+      CWLogger.namedLog('Added RefreshControlSlice to reducers in store.ts.');
+    } else {
+      CWLogger.namedLog('RefreshControlSlice already exists in reducers in store.ts.');
+    }
+
+    // Write the updated content back to store.ts
+    await storeFile.writeAsString(json.encode(storeJson), mode: FileMode.write);
+    CWLogger.namedLog('Updated store.ts with new whitelist and reducers.');
+  }
 
 }

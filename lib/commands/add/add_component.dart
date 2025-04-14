@@ -5,15 +5,15 @@ import 'package:cli_spin/cli_spin.dart';
 import 'package:cwa_plugin_core/cwa_plugin_core.dart';
 import 'package:react_native/config/plugin_config.dart';
 
-import '../../config/runtime_config.dart';
 import '../../model/specification.dart';
+import '../../utils/download_manager.dart';
 
 class ReactNativeComponent extends Command {
   ReactNativeComponent(super.args);
 
   @override
   String get description => "Manage Components for React Native project.";
-
+  DownloadManager downloadManager = DownloadManager();
   @override
   Future<void> run() async {
     CWLogger.i.progress("Looking for available Components");
@@ -75,14 +75,14 @@ class ReactNativeComponent extends Command {
         // Handle file paths if available
         if (componentFilePaths.isNotEmpty) {
           for (String componentFilePath in componentFilePaths) {
-            await _downloadFile(componentFilePath, componentName);
+            await downloadManager.downloadFile(componentFilePath, componentName);
           }
         }
 
         // Handle folder paths if available
         if (componentFolderPaths.isNotEmpty) {
           for (String componentFolderPath in componentFolderPaths) {
-            await _downloadDirectory(componentFolderPath, componentName);
+            await downloadManager.downloadDirectory(componentFolderPath, componentName);
           }
         }
 
@@ -103,45 +103,4 @@ class ReactNativeComponent extends Command {
     }
   }
 
-  // Method to download individual file
-  Future<void> _downloadFile(String componentFilePath, String componentName) async {
-    String? fileContent = await GitService.getGitLabFileContent(
-      projectId: ReactNativeConfig.i.pilotRepoProjectID,
-      filePath: componentFilePath,
-      branch: componentName,
-      token: TokenService().accessToken!,
-    );
-
-    if (fileContent != null) {
-      String localFilePath =
-          '${RuntimeConfig().commandExecutionPath}/$componentFilePath';
-      File localFile = File(localFilePath);
-
-      if (localFile.existsSync()) {
-        CWLogger.i.trace('$componentFilePath already exists, skipping download.');
-      } else {
-        await localFile.create(recursive: true);
-        await localFile.writeAsString(fileContent);
-        CWLogger.i.trace('Downloaded $componentFilePath successfully.');
-      }
-    } else {
-      CWLogger.i.trace('Failed to fetch $componentFilePath.');
-    }
-  }
-
-  // Method to download a directory
-  Future<void> _downloadDirectory(String componentFolderPath, String componentName) async {
-    try {
-      await GitService.downloadDirectoryContents(
-        projectId: ReactNativeConfig.i.pilotRepoProjectID,
-        branch: componentName,
-        directoryPath: componentFolderPath,
-        downloadPathBase: RuntimeConfig().commandExecutionPath,
-        accessToken: TokenService().accessToken!,
-      );
-      CWLogger.i.trace('Downloaded directory $componentFolderPath successfully.');
-    } catch (e) {
-      CWLogger.i.trace('Failed to download directory $componentFolderPath: $e');
-    }
-  }
 }

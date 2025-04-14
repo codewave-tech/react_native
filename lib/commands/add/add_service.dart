@@ -5,14 +5,15 @@ import 'package:cli_spin/cli_spin.dart';
 import 'package:cwa_plugin_core/cwa_plugin_core.dart';
 import 'package:react_native/config/plugin_config.dart';
 
-import '../../config/runtime_config.dart';
 import '../../model/specification.dart';
+import '../../utils/download_manager.dart';
 
 class ReactNativeService extends Command {
   ReactNativeService(super.args);
 
   @override
   String get description => "Manage Services for React Native project.";
+  DownloadManager downloadManager = DownloadManager();
 
   @override
   Future<void> run() async {
@@ -67,30 +68,22 @@ class ReactNativeService extends Command {
 
       if (specsFileContent != null) {
         Map<String, dynamic> specificationData = json.decode(specsFileContent);
-        List<dynamic> serviceFilePaths = specificationData['filePath'];
-        for (String serviceFilePath in serviceFilePaths) {
-          String? fileContent = await GitService.getGitLabFileContent(
-            projectId: ReactNativeConfig.i.pilotRepoProjectID,
-            filePath: serviceFilePath,
-            branch: serviceName,
-            token: TokenService().accessToken!,
-          );
 
-          if (fileContent != null) {
-            String localFilePath =
-                '${RuntimeConfig().commandExecutionPath}/$serviceFilePath';
-            File localFile = File(localFilePath);
+        // Get file and folder paths from the config
+        List<dynamic> serviceFilePaths = specificationData['filePath'] ?? [];
+        List<dynamic> serviceFolderPaths = specificationData['folderPath'] ?? [];
 
-            if (localFile.existsSync()) {
-              CWLogger.i
-                  .trace('$serviceFilePath already exists, skipping download.');
-            } else {
-              await localFile.create(recursive: true);
-              await localFile.writeAsString(fileContent);
-              CWLogger.i.trace('Downloaded $serviceFilePath successfully.');
-            }
-          } else {
-            CWLogger.i.trace('Failed to fetch $serviceFilePath.');
+        // Handle file paths
+        if (serviceFilePaths.isNotEmpty) {
+          for (String serviceFilePath in serviceFilePaths) {
+            await downloadManager.downloadFile(serviceFilePath, serviceName);
+          }
+        }
+
+        // Handle folder paths
+        if (serviceFolderPaths.isNotEmpty) {
+          for (String serviceFolderPath in serviceFolderPaths) {
+            await downloadManager.downloadDirectory(serviceFolderPath, serviceName);
           }
         }
 
@@ -110,4 +103,6 @@ class ReactNativeService extends Command {
           'Error downloading service $serviceName or updating specifications: $e');
     }
   }
+
+
 }

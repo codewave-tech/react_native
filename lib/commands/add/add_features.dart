@@ -5,14 +5,15 @@ import 'package:cli_spin/cli_spin.dart';
 import 'package:cwa_plugin_core/cwa_plugin_core.dart';
 import 'package:react_native/config/plugin_config.dart';
 
-import '../../config/runtime_config.dart';
 import '../../model/specification.dart';
+import '../../utils/download_manager.dart';
 
 class ReactNativeFeature extends Command {
   ReactNativeFeature(super.args);
 
   @override
   String get description => "";
+  DownloadManager downloadManager = DownloadManager();
 
   @override
   Future<void> run() async {
@@ -77,14 +78,14 @@ class ReactNativeFeature extends Command {
         // Handle file paths if available
         if (featuresFilePaths.isNotEmpty) {
           for (String featureFilePath in featuresFilePaths) {
-            await _downloadFile(featureFilePath, featureName);
+            await downloadManager.downloadFile(featureFilePath, featureName);
           }
         }
 
         // Handle folder paths if available
         if (featuresFolderPaths.isNotEmpty) {
           for (String featureFolderPath in featuresFolderPaths) {
-            await _downloadDirectory(featureFolderPath, featureName);
+            await downloadManager.downloadDirectory(featureFolderPath, featureName);
           }
         }
 
@@ -101,45 +102,4 @@ class ReactNativeFeature extends Command {
     }
   }
 
-  // Method to download individual file
-  Future<void> _downloadFile(String featureFilePath, String featureName) async {
-    String? fileContent = await GitService.getGitLabFileContent(
-      projectId: ReactNativeConfig.i.pilotRepoProjectID,
-      filePath: featureFilePath,
-      branch: featureName,
-      token: TokenService().accessToken!,
-    );
-
-    if (fileContent != null) {
-      String localFilePath =
-          '${RuntimeConfig().commandExecutionPath}/$featureFilePath';
-      File localFile = File(localFilePath);
-
-      if (localFile.existsSync()) {
-        CWLogger.i.trace('$featureFilePath already exists, skipping download.');
-      } else {
-        await localFile.create(recursive: true);
-        await localFile.writeAsString(fileContent);
-        CWLogger.i.trace('Downloaded $featureFilePath successfully.');
-      }
-    } else {
-      CWLogger.i.trace('Failed to fetch $featureFilePath.');
-    }
-  }
-
-  // Method to download a directory
-  Future<void> _downloadDirectory(String featureFilePath, String featureName) async {
-    try {
-      await GitService.downloadDirectoryContents(
-        projectId: ReactNativeConfig.i.pilotRepoProjectID,
-        branch: featureName,
-        directoryPath: featureFilePath,
-        downloadPathBase: RuntimeConfig().commandExecutionPath,
-        accessToken: TokenService().accessToken!,
-      );
-      CWLogger.i.trace('Downloaded directory $featureFilePath successfully.');
-    } catch (e) {
-      CWLogger.i.trace('Failed to download directory $featureFilePath: $e');
-    }
-  }
 }

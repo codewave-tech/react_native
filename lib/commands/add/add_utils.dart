@@ -5,14 +5,15 @@ import 'package:cli_spin/cli_spin.dart';
 import 'package:cwa_plugin_core/cwa_plugin_core.dart';
 import 'package:react_native/config/plugin_config.dart';
 
-import '../../config/runtime_config.dart';
 import '../../model/specification.dart';
+import '../../utils/download_manager.dart';
 
 class ReactNativeUtils extends Command {
   ReactNativeUtils(super.args);
 
   @override
   String get description => "Manage utilities for React Native project.";
+  DownloadManager downloadManager = DownloadManager();
 
   @override
   Future<void> run() async {
@@ -54,7 +55,7 @@ class ReactNativeUtils extends Command {
 
   Future<void> _handleUtilityAndSpecification(String utilityName) async {
     CliSpin featureLoader =
-        CliSpin(text: "Adding $utilityName to the project").start();
+    CliSpin(text: "Adding $utilityName to the project").start();
 
     try {
       String filePath = 'specification_config.json';
@@ -68,31 +69,21 @@ class ReactNativeUtils extends Command {
       if (specsFileContent != null) {
         Map<String, dynamic> specificationData = json.decode(specsFileContent);
 
-        List<dynamic> utilityFilePaths = specificationData['filePath'];
+        // Get the filePath and folderPath from the config
+        List<dynamic> utilityFilePaths = specificationData['filePath'] ?? [];
+        List<dynamic> utilityFolderPaths = specificationData['folderPath'] ?? [];
 
-        for (String utilityFilePath in utilityFilePaths) {
-          String? fileContent = await GitService.getGitLabFileContent(
-            projectId: ReactNativeConfig.i.pilotRepoProjectID,
-            filePath: utilityFilePath,
-            branch: utilityName,
-            token: TokenService().accessToken!,
-          );
+        // Handle file paths if available
+        if (utilityFilePaths.isNotEmpty) {
+          for (String utilityFilePath in utilityFilePaths) {
+            await downloadManager.downloadFile(utilityFilePath, utilityName);
+          }
+        }
 
-          if (fileContent != null) {
-            String localFilePath =
-                '${RuntimeConfig().commandExecutionPath}/$utilityFilePath';
-            File localFile = File(localFilePath);
-
-            if (localFile.existsSync()) {
-              CWLogger.i
-                  .trace('$utilityFilePath already exists, skipping download.');
-            } else {
-              await localFile.create(recursive: true);
-              await localFile.writeAsString(fileContent);
-              CWLogger.i.trace('Downloaded $utilityFilePath successfully.');
-            }
-          } else {
-            CWLogger.i.trace('Failed to fetch $utilityFilePath.');
+        // Handle folder paths if available
+        if (utilityFolderPaths.isNotEmpty) {
+          for (String utilityFolderPath in utilityFolderPaths) {
+            await downloadManager.downloadDirectory(utilityFolderPath, utilityName);
           }
         }
 
@@ -108,4 +99,5 @@ class ReactNativeUtils extends Command {
           'Error downloading utility $utilityName or updating specifications: $e');
     }
   }
+
 }
