@@ -98,7 +98,7 @@ packages:
     source: hosted
     version: "0.2.0"
   cli_spin:
-    dependency: "direct main"
+    dependency: transitive
     description:
       name: cli_spin
       sha256: d942e605e508820b8bde1cfc26f19810abd6bd6bfa32a4f049c9ebaaccbddb50

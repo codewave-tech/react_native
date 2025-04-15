@@ -1,9 +1,9 @@
 import 'dart:convert';
 import 'dart:io';
-import 'package:cli_spin/cli_spin.dart';
 import 'package:cwa_plugin_core/cwa_plugin_core.dart';
 import '../../config/plugin_config.dart';
 import '../../config/runtime_config.dart';
+import '../../utils/cli_spinner.dart';
 import '../../utils/package_json.dart'; // Import the new utils file
 
 class ReactNativeInit extends Command {
@@ -19,6 +19,7 @@ class ReactNativeInit extends Command {
   Future<void> run() async {
 
     String branch = 'main';
+    SimpleSpinner spinner = SimpleSpinner();
 
     List<String>? branches = await GitService.getGitLabBranches(
       ReactNativeConfig.i.archManagerProjectID,
@@ -33,9 +34,7 @@ class ReactNativeInit extends Command {
       exit(1);
     }
     await _createTimestampConfigFile();
-      CliSpin loader = CliSpin(
-        text: "Adapting architecture $branch in the project")
-        .start();
+    spinner.start("Adapting architecture $branch in the project");
 
     List<String> directoriesToDownload = [
       'components', 'hooks', 'service', 'redux', 'patches', 'utils', 'apiService', 'config', 'constants'
@@ -86,8 +85,7 @@ class ReactNativeInit extends Command {
         ReactNativeConfig.i.archManagerProjectID,
         branch
     );
-
-    loader.success("Project now follows the selected architecture");
+    spinner.stop(isSuccess: true,successMessage: "Project now follows the selected architecture");
 
     return;
   }

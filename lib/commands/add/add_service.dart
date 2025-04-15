@@ -1,10 +1,8 @@
 import 'dart:convert';
 import 'dart:io';
-
-import 'package:cli_spin/cli_spin.dart';
 import 'package:cwa_plugin_core/cwa_plugin_core.dart';
 import 'package:react_native/config/plugin_config.dart';
-
+import 'package:react_native/utils/cli_spinner.dart';
 import '../../model/specification.dart';
 import '../../utils/download_manager.dart';
 
@@ -54,8 +52,8 @@ class ReactNativeService extends Command {
   }
 
   Future<void> _handleServiceAndSpecification(String serviceName) async {
-    CliSpin featureLoader =
-    CliSpin(text: "Adding $serviceName to the project").start();
+    SimpleSpinner spinner=SimpleSpinner();
+    spinner.start("Adding $serviceName to the project");
 
     try {
       String filePath = 'specification_config.json';
@@ -89,12 +87,12 @@ class ReactNativeService extends Command {
 
         await SpecificationUpdater.updateSpecifications(serviceName);
 
-        featureLoader.success();
+        spinner.stop(isSuccess: true);
       } else {
         CWLogger.i.trace('Failed to fetch specification_config.json');
       }
     } catch (e) {
-      featureLoader.fail();
+      spinner.stop(isSuccess: false);
       CWLogger.namedLog(
         e.toString(),
         loggerColor: CWLoggerColor.red,

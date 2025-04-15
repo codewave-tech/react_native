@@ -21,5 +21,5 @@ class ReactNativeConfig extends PluginConfig {
   PluginEnvironment get pluginEnvironment => PluginEnvironment.prod;
 
   @override
-  Version get version => Version.parse("1.5.0");
+  Version get version => Version.parse("1.6.0");
 }

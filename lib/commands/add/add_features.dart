@@ -1,10 +1,8 @@
 import 'dart:convert';
 import 'dart:io';
-
-import 'package:cli_spin/cli_spin.dart';
 import 'package:cwa_plugin_core/cwa_plugin_core.dart';
 import 'package:react_native/config/plugin_config.dart';
-
+import 'package:react_native/utils/cli_spinner.dart';
 import '../../model/specification.dart';
 import '../../utils/download_manager.dart';
 
@@ -56,8 +54,8 @@ class ReactNativeFeature extends Command {
   }
 
   Future<void> _handleFeatureAndSpecification(String featureName) async {
-    CliSpin featureLoader =
-    CliSpin(text: "Adding $featureName to the project").start();
+    SimpleSpinner spinner=SimpleSpinner();
+    spinner.start("Adding $featureName to the project");
 
     try {
       String filePath = 'specification_config.json';
@@ -91,12 +89,12 @@ class ReactNativeFeature extends Command {
 
         await SpecificationUpdater.updateSpecifications(featureName);
 
-        featureLoader.success();
+        spinner.stop(isSuccess: true);
       } else {
         CWLogger.i.trace('Failed to fetch specification_config.json');
       }
     } catch (e) {
-      featureLoader.fail();
+      spinner.stop(isSuccess: false);
       CWLogger.i.trace(
           'Error downloading Feature $featureName or updating specifications: $e');
     }
