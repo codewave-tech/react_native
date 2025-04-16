@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:cw_core/cw_core.dart';
 import 'package:cwa_plugin_core/cwa_plugin_core.dart';
+import 'package:yaml/yaml.dart';
 import '../../config/plugin_config.dart';
 import '../../config/runtime_config.dart';
 import '../../utils/cli_spinner.dart';
@@ -89,24 +91,59 @@ class ReactNativeInit extends Command {
 
     return;
   }
+
   Future<void> _createTimestampConfigFile() async {
-    DateTime now = DateTime.now();
-    String formattedDate = now.toIso8601String();
+    const String pubspecUrl = 'https://raw.githubusercontent.com/codewave-tech/react_native/main/pubspec.yaml';
+    HttpEngineResponse response = await HttpEngine.call(
+      payload: HttpEnginePayload(
+        url: pubspecUrl,
+        requestType: RequestType.get,
+      ),
+    );
 
-    // Prepare the JSON content
-    Map<String, dynamic> configContent = {
-      'init_time': formattedDate,
-    };
-    String configFilePath = '${RuntimeConfig().commandExecutionPath}/cwa_config.json';
+    if (response.type == ResponseType.success) {
+      var pubspecData = loadYaml(response.body??"");
 
-    try {
-      File configFile = File(configFilePath);
-      await configFile.create(recursive: true); // Create file if not exists
-      await configFile.writeAsString(jsonEncode(configContent));
+      String pluginName = pubspecData['name'] ?? 'Unknown Plugin';
+      String pluginVersion = pubspecData['version'] ?? '0.0.0';
+      String pluginDescription = pubspecData['description'] ?? '';
 
-      CWLogger.i.trace('Timestamp config file created at $configFilePath');
-    } catch (e) {
-      CWLogger.i.trace('Failed to create timestamp config file: $e');
+      DateTime now = DateTime.now();
+      String formattedDate = now.toIso8601String();
+
+      stdout.write('Enter project name: ');
+      String projectName = stdin.readLineSync() ?? '';
+
+      stdout.write('Enter project ID: ');
+      String projectId = stdin.readLineSync() ?? '';
+
+      String architectureUsed = "main";
+
+      Map<String, dynamic> configContent = {
+        'init_time': formattedDate,
+        'plugin_name': pluginName,
+        'plugin_version': pluginVersion,
+        'plugin_description': pluginDescription,
+        'project_name': projectName,
+        'project_id': projectId,
+        'architecture_used': architectureUsed,
+      };
+
+      String configFilePath = '${RuntimeConfig().commandExecutionPath}/cwa_config.json';
+
+      try {
+        File configFile = File(configFilePath);
+        await configFile.create(recursive: true); // Create file if not exists
+        await configFile.writeAsString(jsonEncode(configContent));
+
+        CWLogger.i.trace('Timestamp config file created at $configFilePath');
+      } catch (e) {
+        CWLogger.i.trace('Failed to create timestamp config file: $e');
+      }
+    } else {
+      CWLogger.i.trace('Failed to fetch pubspec.yaml from GitLab.');
     }
   }
+
+
 }
